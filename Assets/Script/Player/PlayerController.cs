@@ -3,17 +3,21 @@ using System.Collections;
 
 public class PlayerController : MonoBehaviour
 {
-    [Header("The Arm (For Aiming)")]
+    [Header("The Arm & Shooting")]
     public Transform armTransform; 
     public Transform firePoint;    
     public GameObject bulletPrefab;
+    public int maxAmmo = 12;
+    public int currentAmmo;
+    public float reloadTime = 1.5f;
+    private bool isReloading = false;
 
     [Header("Roly Poly (A & D Keys)")]
     public float rollForce = 14f;
-    public float rollJumpForce = 5f; // Small hop height
+    public float rollJumpForce = 5f; 
     public float rollDuration = 0.4f;
     public float rollCooldown = 0.2f;
-    public bool isInvulnerable = false;
+    [HideInInspector] public bool isInvulnerable = false; 
     private bool isRolling = false;
     private bool canRoll = true;
     private bool hasAirRolled = false;
@@ -41,6 +45,7 @@ public class PlayerController : MonoBehaviour
     void Start()
     {
         if (rb == null) rb = GetComponent<Rigidbody2D>();
+        currentAmmo = maxAmmo;
     }
 
     void Update()
@@ -48,48 +53,73 @@ public class PlayerController : MonoBehaviour
         CheckEnvironment();
         RotateArmTowardMouse();
 
-        // --- ROLY POLY LOGIC ---
+        // --- SLOW MOTION ---
+        if (Input.GetKey(KeyCode.Space))
+        {
+            Time.timeScale = 0.4f;
+            Time.fixedDeltaTime = 0.02f * Time.timeScale;
+        }
+        else
+        {
+            Time.timeScale = 1.0f;
+            Time.fixedDeltaTime = 0.02f;
+        }
+
+        // --- SHOOTING ---
+        if (Input.GetMouseButtonDown(0) && currentAmmo > 0 && !isReloading && !isRolling)
+        {
+            Shoot();
+        }
+        else if ((Input.GetMouseButtonDown(0) && currentAmmo <= 0) || Input.GetKeyDown(KeyCode.R))
+        {
+            if (!isReloading && currentAmmo < maxAmmo) StartCoroutine(Reload());
+        }
+
+        // --- ROLY POLY ---
         if (canRoll && !isRolling)
         {
             if (Input.GetKeyDown(KeyCode.A) || Input.GetKeyDown(KeyCode.D))
             {
                 float direction = Input.GetKeyDown(KeyCode.A) ? -1f : 1f;
-
-                if (isGrounded)
+                if (isGrounded || !hasAirRolled)
                 {
-                    StartCoroutine(PerformRolyPoly(direction));
-                }
-                else if (!hasAirRolled)
-                {
-                    hasAirRolled = true;
+                    if (!isGrounded) hasAirRolled = true;
                     StartCoroutine(PerformRolyPoly(direction));
                 }
             }
         }
 
-        // --- RECOIL MANEUVER ---
-        if (Input.GetMouseButtonDown(1) && canRecoil && !isRolling)
-        {
-            StartCoroutine(PerformRecoil());
-        }
-
-        // --- GROUND SMASH ---
-        if (Input.GetKeyDown(KeyCode.S) && !isGrounded && !isSmashing)
-        {
-            StartCoroutine(PerformGroundSmash());
-        }
-
-        // --- SHOOTING ---
-        if (Input.GetMouseButtonDown(0))
-        {
-            Instantiate(bulletPrefab, firePoint.position, firePoint.rotation);
-        }
-
-        // --- SLOW MOTION ---
-        Time.timeScale = Input.GetKey(KeyCode.Space) ? 0.4f : 1f;
-        Time.fixedDeltaTime = 0.02f * Time.timeScale;
+        if (Input.GetMouseButtonDown(1) && canRecoil && !isRolling) StartCoroutine(PerformRecoil());
+        if (Input.GetKeyDown(KeyCode.S) && !isGrounded && !isSmashing) StartCoroutine(PerformGroundSmash());
 
         UpdateFacingDirection();
+    }
+
+    void Shoot()
+    {
+        currentAmmo--;
+        Instantiate(bulletPrefab, firePoint.position, firePoint.rotation);
+    }
+
+    IEnumerator Reload()
+    {
+        isReloading = true;
+        yield return new WaitForSeconds(reloadTime);
+        currentAmmo = maxAmmo;
+        isReloading = false;
+    }
+
+    IEnumerator PerformRolyPoly(float direction)
+    {
+        canRoll = false; 
+        isRolling = true; 
+        isInvulnerable = true; 
+        rb.linearVelocity = new Vector2(direction * rollForce, rollJumpForce);
+        yield return new WaitForSeconds(rollDuration);
+        isRolling = false; 
+        isInvulnerable = false; 
+        yield return new WaitForSeconds(rollCooldown);
+        canRoll = true;
     }
 
     void CheckEnvironment()
@@ -99,36 +129,13 @@ public class PlayerController : MonoBehaviour
         if (isGrounded && !wasGrounded) hasAirRolled = false;
     }
 
-    IEnumerator PerformRolyPoly(float direction)
-    {
-        canRoll = false; 
-        isRolling = true; 
-        isInvulnerable = true;
-        
-        // --- THE HOP LOGIC ---
-        // We apply horizontal rollForce AND a small vertical rollJumpForce
-        rb.linearVelocity = new Vector2(direction * rollForce, rollJumpForce);
-        
-        yield return new WaitForSeconds(rollDuration);
-        
-        isRolling = false; 
-        isInvulnerable = false;
-        yield return new WaitForSeconds(rollCooldown);
-        canRoll = true;
-    }
-
     IEnumerator PerformRecoil()
     {
         canRecoil = false;
-        Vector3 mousePos = Input.mousePosition;
-        mousePos.z = -Camera.main.transform.position.z; 
-        Vector3 worldMousePos = Camera.main.ScreenToWorldPoint(mousePos);
-        worldMousePos.z = 0;
-
-        Vector2 recoilDirection = (transform.position - worldMousePos).normalized;
+        Vector3 mousePos = Camera.main.ScreenToWorldPoint(new Vector3(Input.mousePosition.x, Input.mousePosition.y, -Camera.main.transform.position.z));
+        Vector2 recoilDirection = (transform.position - mousePos).normalized;
         rb.linearVelocity = Vector2.zero; 
         rb.AddForce(recoilDirection * recoilForce, ForceMode2D.Impulse);
-
         yield return new WaitForSeconds(recoilCooldown);
         canRecoil = true;
     }
@@ -140,9 +147,7 @@ public class PlayerController : MonoBehaviour
         Vector2 direction = (mousePos - armTransform.position).normalized;
         float angle = Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg;
         armTransform.rotation = Quaternion.Euler(0, 0, angle);
-
-        if (armSprite != null)
-            armSprite.flipY = (mousePos.x < armTransform.position.x);
+        if (armSprite != null) armSprite.flipY = (mousePos.x < armTransform.position.x);
     }
 
     IEnumerator PerformGroundSmash()
@@ -150,7 +155,6 @@ public class PlayerController : MonoBehaviour
         isSmashing = true; 
         rb.linearVelocity = new Vector2(0, -smashDownForce);
         while (!isGrounded) yield return null;
-        
         Collider2D[] enemies = Physics2D.OverlapCircleAll(transform.position, smashExplosionRadius);
         foreach (var e in enemies) {
             if (e.CompareTag("Enemy")) e.GetComponent<ScoutEnemy>()?.TakeDamage(smashDamage);

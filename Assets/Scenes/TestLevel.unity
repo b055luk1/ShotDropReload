@@ -397,7 +397,7 @@ MonoBehaviour:
     m_Bits: 128
   visualRadius: 10
   shootingRadius: 9.74
-  alertRadiusBoost: 5
+  alertRadiusBoost: 1
   viewAngle: 130.9
   horizontalThreshold: 1.2
   detectionMask:
@@ -884,9 +884,9 @@ GameObject:
   - component: {fileID: 1073333079}
   - component: {fileID: 1073333083}
   - component: {fileID: 1073333082}
-  - component: {fileID: 1073333081}
   - component: {fileID: 1073333080}
   - component: {fileID: 1073333084}
+  - component: {fileID: 1073333085}
   m_Layer: 6
   m_Name: Player
   m_TagString: Player
@@ -957,38 +957,6 @@ BoxCollider2D:
   m_AutoTiling: 0
   m_Size: {x: 1, y: 2}
   m_EdgeRadius: 0
---- !u!114 &1073333081
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1073333078}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 658f934adce7ccc45ad4b7d3f01486f9, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::PlayerController
-  armTransform: {fileID: 474113018}
-  firePoint: {fileID: 1721256934}
-  bulletPrefab: {fileID: 539269989925070163, guid: 54c0fa7fdb1bec749bd78097c2aa990f, type: 3}
-  rollForce: 14
-  rollJumpForce: 5
-  rollDuration: 0.4
-  rollCooldown: 0.35
-  isInvulnerable: 0
-  recoilForce: 20
-  recoilCooldown: 0.5
-  smashDownForce: 30
-  smashExplosionRadius: 4
-  smashDamage: 2
-  rb: {fileID: 1073333082}
-  bodySprite: {fileID: 1073333083}
-  armSprite: {fileID: 1931848021}
-  groundCheck: {fileID: 375157194}
-  environmentLayer:
-    serializedVersion: 2
-    m_Bits: 128
 --- !u!50 &1073333082
 Rigidbody2D:
   serializedVersion: 5
@@ -1087,11 +1055,48 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 414f7a9918ebc1c4f81a6fdb19b41afb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerHealth
-  maxHealth: 10
-  currentHealth: 10
-  spriteRenderer: {fileID: 1073333083}
+  maxHealth: 999
+  currentHealth: 999
+  bodySprite: {fileID: 1073333083}
+  armSprite: {fileID: 1931848021}
   damageColor: {r: 1, g: 0, b: 0, a: 1}
   invulnerabilityTime: 0.5
+  knockbackForce: 10
+--- !u!114 &1073333085
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1073333078}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 658f934adce7ccc45ad4b7d3f01486f9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerController
+  armTransform: {fileID: 474113018}
+  firePoint: {fileID: 1721256934}
+  bulletPrefab: {fileID: 539269989925070163, guid: 54c0fa7fdb1bec749bd78097c2aa990f, type: 3}
+  maxAmmo: 12
+  currentAmmo: 0
+  reloadTime: 1.5
+  rollForce: 14
+  rollJumpForce: 5
+  rollDuration: 0.4
+  rollCooldown: 0.2
+  isInvulnerable: 0
+  recoilForce: 20
+  recoilCooldown: 0.3
+  smashDownForce: 30
+  smashExplosionRadius: 4.64
+  smashDamage: 2
+  rb: {fileID: 1073333082}
+  bodySprite: {fileID: 1073333083}
+  armSprite: {fileID: 1931848021}
+  groundCheck: {fileID: 375157194}
+  environmentLayer:
+    serializedVersion: 2
+    m_Bits: 128
 --- !u!1 &1168850222
 GameObject:
   m_ObjectHideFlags: 0

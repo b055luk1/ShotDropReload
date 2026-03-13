@@ -8,61 +8,67 @@ public class PlayerHealth : MonoBehaviour
     public int currentHealth;
 
     [Header("Visual Feedback")]
-    public SpriteRenderer spriteRenderer;
+    public SpriteRenderer bodySprite;
+    public SpriteRenderer armSprite;
     public Color damageColor = Color.red;
     private Color originalColor;
-    private bool isInvulnerable = false;
+    
+    [Header("Invulnerability & Flinch")]
     public float invulnerabilityTime = 0.5f;
+    public float knockbackForce = 10f;
+    private bool isHitInvulnerable = false;
+    
+    private PlayerController controller;
+    private Rigidbody2D rb;
 
     void Start()
     {
         currentHealth = maxHealth;
+        controller = GetComponent<PlayerController>();
+        rb = GetComponent<Rigidbody2D>();
 
-        // Auto-assign SpriteRenderer if not set in Inspector
-        if (spriteRenderer == null) spriteRenderer = GetComponent<SpriteRenderer>();
-        
-        if (spriteRenderer != null) originalColor = spriteRenderer.color;
+        if (bodySprite == null) bodySprite = GetComponent<SpriteRenderer>();
+        if (bodySprite != null) originalColor = bodySprite.color;
     }
 
-    public void TakeDamage(int damage)
+    public void TakeDamage(int damage, Vector2 hitSource)
     {
-        // Prevent taking damage if already hit (brief invulnerability)
-        if (isInvulnerable) return;
+        // Check PlayerController to see if we are currently Roly-Polying
+        bool isRolling = (controller != null && controller.isInvulnerable);
+        
+        if (isHitInvulnerable || isRolling) return;
 
         currentHealth -= damage;
-        Debug.Log("Player Health: " + currentHealth);
 
-        if (currentHealth > 0)
+        if (rb != null)
         {
-            StartCoroutine(DamageFeedback());
+            Vector2 knockbackDir = (transform.position - (Vector3)hitSource).normalized;
+            rb.linearVelocity = Vector2.zero;
+            rb.AddForce(new Vector2(knockbackDir.x, 0.4f) * knockbackForce, ForceMode2D.Impulse);
         }
-        else
-        {
-            Die();
-        }
+
+        if (currentHealth > 0) StartCoroutine(DamageFeedback());
+        else Die();
     }
 
     IEnumerator DamageFeedback()
     {
-        isInvulnerable = true;
-        
-        // Flicker effect
-        if (spriteRenderer != null)
-        {
-            spriteRenderer.color = damageColor;
-            yield return new WaitForSeconds(0.1f);
-            spriteRenderer.color = originalColor;
-        }
-
+        isHitInvulnerable = true;
+        SetSpritesColor(damageColor);
+        yield return new WaitForSeconds(0.1f);
+        SetSpritesColor(originalColor);
         yield return new WaitForSeconds(invulnerabilityTime);
-        isInvulnerable = false;
+        isHitInvulnerable = false;
+    }
+
+    void SetSpritesColor(Color c)
+    {
+        if (bodySprite != null) bodySprite.color = c;
+        if (armSprite != null) armSprite.color = c;
     }
 
     void Die()
     {
-        Debug.Log("Player has died!");
-        // You can add a reload scene logic here or a "Game Over" screen
-        // For now, let's just disable the player
         gameObject.SetActive(false);
     }
 }

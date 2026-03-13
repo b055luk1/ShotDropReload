@@ -2,35 +2,38 @@ using UnityEngine;
 
 public class EnemyBullet : MonoBehaviour
 {
-    [Header("Bullet Settings")]
     public float speed = 12f;
     public int damage = 1;
-    public float lifeSpan = 3f;
-
-    void Start()
-    {
-        Destroy(gameObject, lifeSpan);
-    }
 
     void Update()
     {
         transform.Translate(Vector2.right * speed * Time.deltaTime);
     }
 
-    private void OnTriggerEnter2D(Collider2D hitInfo)
+    void OnTriggerEnter2D(Collider2D other)
     {
-        // 1. Check if we hit the Player
-        PlayerHealth player = hitInfo.GetComponent<PlayerHealth>();
-
-        if (player != null)
+        if (other.CompareTag("Player"))
         {
-            player.TakeDamage(damage);
+            PlayerController pc = other.GetComponent<PlayerController>();
+            
+            // --- THE PHASE THROUGH CHECK ---
+            if (pc != null && pc.isInvulnerable)
+            {
+                // If the player is rolling, we do NOTHING. 
+                // The bullet will continue moving as if it never hit anything.
+                return; 
+            }
+
+            // Otherwise, apply damage as normal
+            PlayerHealth health = other.GetComponent<PlayerHealth>();
+            if (health != null)
+            {
+                health.TakeDamage(damage, transform.position);
+            }
             Destroy(gameObject);
-            return;
         }
-        
-        // 2. Check if we hit the Ground/Walls
-        if (hitInfo.gameObject.layer == LayerMask.NameToLayer("Ground"))
+
+        if (other.gameObject.layer == LayerMask.NameToLayer("Environment"))
         {
             Destroy(gameObject);
         }
